@@ -12,13 +12,11 @@ def project_y(filename: str, show=False, save=True):
     cv2.imwrite("img/" + Path(filename).stem + "-binary.jpg", binary_img) if save else None
 
     # project black points and plot
-    new_img = np.full((h, w), fill_value=255, dtype=np.uint8)
-    for i in range(0, h):
-        black_idx = 0
-        for j in range(0, w):
-            if binary_img[i, j] == 0:  # point is black
-                new_img[i, black_idx] = 0
-                black_idx = black_idx + 1
+    new_img = np.full((h, w), fill_value=255, dtype=np.uint8)  # create a new img
+    black_dot_sum = np.sum(binary_img == 0, axis=1)  # sum all black dots
+    for i in range(len(black_dot_sum)):
+        for j in range(0, black_dot_sum[i]):
+            new_img[i, j] = 0
     cv2.imshow("project_to_y_axis", new_img) if show else None
     cv2.imwrite("img/" + Path(filename).stem + "-shadow.jpg", new_img) if save else None
 
@@ -36,12 +34,10 @@ def project_x(filename: str, show=False, save=True):
 
     # project black points and plot
     new_img = np.full((h, w), fill_value=255, dtype=np.uint8)
-    for j in range(0, w):
-        black_idx = 0
-        for i in range(0, h):
-            if binary_img[i, j] == 0:  # point is black
-                new_img[h - black_idx - 1, j] = 0
-                black_idx = black_idx + 1
+    black_dot_sum = np.sum(binary_img == 0, axis=0)
+    for j in range(len(black_dot_sum)):
+        for i in range(h - black_dot_sum[j], h):
+            new_img[i, j] = 0
     cv2.imshow("project_to_y_axis", new_img) if show else None
     cv2.imwrite("img/" + Path(filename).stem + "-shadow.jpg", new_img) if save else None
 
@@ -80,4 +76,4 @@ def example2():
 
 
 if __name__ == '__main__':
-    project_y("img/2.jpg")
+    project_x("img/2.jpg")
