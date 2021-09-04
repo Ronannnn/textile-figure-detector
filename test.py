@@ -8,6 +8,7 @@ def project_y(filename: str, show=False, save=True):
     img = cv2.imread(filename, 0)
     h, w = img.shape
     _, binary_img = cv2.threshold(img, 150, 255, cv2.THRESH_BINARY)
+    binary_img = adjust_black(binary_img)
     cv2.imshow("binarization_img", binary_img) if show else None
     cv2.imwrite("img/" + Path(filename).stem + "-binary.jpg", binary_img) if save else None
 
@@ -29,6 +30,7 @@ def project_x(filename: str, show=False, save=True):
     img = cv2.imread(filename, 0)
     h, w = img.shape
     _, binary_img = cv2.threshold(img, 150, 255, cv2.THRESH_BINARY)
+    binary_img = adjust_black(binary_img)
     cv2.imshow("binarization_img", binary_img) if show else None
     cv2.imwrite("img/" + Path(filename).stem + "-binary.jpg", binary_img) if save else None
 
@@ -43,6 +45,14 @@ def project_x(filename: str, show=False, save=True):
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+
+def adjust_black(binary_img):
+    black_dot = np.sum(binary_img)
+    h, w = binary_img.shape
+    if black_dot > h * w / 2:
+        binary_img = np.where(binary_img == 0, 255, 0)
+    return binary_img.astype(np.uint8)
 
 
 def draw_edges_canny(filename):
@@ -72,4 +82,4 @@ def draw_edges_binarization():
 
 
 if __name__ == '__main__':
-    project_x("img/2.jpg")
+    project_x("img/4.jpg")
