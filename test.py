@@ -45,32 +45,28 @@ def project_x(filename: str, show=False, save=True):
     cv2.destroyAllWindows()
 
 
-def draw_edges(filename):
+def draw_edges_canny(filename):
     img = cv2.imread(filename)
-
-    # 高斯模糊
-    gaussian_img = cv2.GaussianBlur(img, (3, 3), 0)
-    # cv2.imshow("gaussian_img", gaussian_img)
+    gaussian_img = cv2.GaussianBlur(img, (3, 3), 0)  # 高斯模糊
 
     edges = cv2.Canny(gaussian_img, 100, 480)
-
     contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     cv2.drawContours(img, contours, -1, (0, 0, 0), 1)
-
     cv2.imshow('edges+lines', img)
-    # cv2.imshow('edges+lines', edges)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 
-def example2():
+def draw_edges_binarization():
     img = cv2.imread('img/test.jpg')
     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # 二值化
     ret, thresh = cv2.threshold(img_gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)  # 寻找二值图像的轮廓
+
     contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     cv2.drawContours(img, contours, -1, (0, 0, 255), 2)
     cv2.imshow('result', img)
+
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
