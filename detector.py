@@ -11,7 +11,8 @@ class TextileDetector:
         self.fn_suffix = filepath.suffix  # suffix with dot, e.g. ".jpg"
         self.dirname = dirname
 
-        self.raw_img = cv2.imread(os.path.join(dirname, filename), 0)
+        self.raw_img = cv2.imread(os.path.join(dirname, filename))
+        self.gray_scaled_img = cv2.cvtColor(self.raw_img, cv2.COLOR_BGR2GRAY)
 
     def project_y(self):
         binary_img = self.__get_binary_img()
@@ -36,12 +37,28 @@ class TextileDetector:
         self.__show_and_save(new_img, "shadow-x")
         self.__cv2_join()
 
+    def draw(self, contours, color=(0, 0, 0)):
+        cloned_raw_img = self.raw_img.copy()
+        cv2.drawContours(cloned_raw_img, contours, -1, color, 5)
+        return cloned_raw_img
+
+    def test_draw(self):
+        """draw the central line"""
+        h, w, _ = self.raw_img.shape
+        print(h, w)
+        test = []
+        for i in range(h):
+            test.append([[int(w / 2), i]])
+        print([np.array(test)])
+        draw_img = self.draw([np.array(test)])
+        self.__show_and_save(draw_img, "draw-img")
+
     def __get_binary_img(self):
-        _, binary_img = cv2.threshold(self.raw_img, 150, 255, cv2.THRESH_BINARY)
+        _, binary_img = cv2.threshold(self.gray_scaled_img, 150, 255, cv2.THRESH_BINARY)
         binary_img = self.__adjust_black(binary_img)
         return binary_img
 
-    def __show_and_save(self, img, label, show=True, save=True):
+    def __show_and_save(self, img, label, show=False, save=True):
         cv2.imshow(label, img) if show else None
         cv2.imwrite(os.path.join(self.dirname, self.fn_stem + "-" + label + self.fn_suffix), img) if save else None
 
@@ -65,5 +82,4 @@ class TextileDetector:
 
 
 if __name__ == '__main__':
-    td = TextileDetector("4.jpg")
-    td.project_x()
+    TextileDetector("4.jpg").test_draw()
