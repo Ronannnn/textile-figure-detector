@@ -30,6 +30,10 @@ class TextileDetector:
         self.__show_and_save(binary_img, "binary-x")
         new_img = np.full(binary_img.shape, fill_value=255, dtype=np.uint8)  # create a new img
         black_dot_sum = np.sum(binary_img == 0, axis=0)
+        peak_x = self.__get_peak_2(black_dot_sum)
+        print(peak_x)
+        draw_img = self.__get_draw_img(peak_x)
+        self.__show_and_save(draw_img, "draw-img")
         h, _ = binary_img.shape
         for j in range(len(black_dot_sum)):
             for i in range(h - black_dot_sum[j], h):
@@ -37,21 +41,67 @@ class TextileDetector:
         self.__show_and_save(new_img, "shadow-x")
         self.__cv2_join()
 
-    def draw(self, contours, color=(0, 0, 0)):
-        cloned_raw_img = self.raw_img.copy()
-        cv2.drawContours(cloned_raw_img, contours, -1, color, 5)
-        return cloned_raw_img
+    @staticmethod
+    def __get_peak(shadow_list):
+        """
+        Reference: https://www.cnblogs.com/ronny/p/3616470.html
+        """
+        # first order difference vector
+        vec = shadow_list[1:] - shadow_list[:-1]
+        vec = np.sign(vec)
+        if vec[len(vec) - 1] == 0:
+            vec[len(vec) - 1] = 1
+        for i in range(len(vec) - 2, 0, -1):
+            if vec[i] == 0:
+                if vec[i + 1] >= 0:
+                    vec[i] = 1
+                else:
+                    vec[i] = -1
+        vec = vec[1:] - vec[:-1]
+        peak = []
+        for i in range(len(vec) - 1):
+            if vec[i + 1] - vec[i] == -2:  # peak
+                peak.append(i + 1)
+        return peak
 
-    def test_draw(self):
-        """draw the central line"""
-        h, w, _ = self.raw_img.shape
-        print(h, w)
-        test = []
-        for i in range(h):
-            test.append([[int(w / 2), i]])
-        print([np.array(test)])
-        draw_img = self.draw([np.array(test)])
-        self.__show_and_save(draw_img, "draw-img")
+    @staticmethod
+    def __get_peak_2(shadow_list):
+        shadow_list = np.array(shadow_list)
+        threshold = int(np.max(shadow_list) * 0.75)
+        shrink_list = [i if i > threshold else 0 for i in shadow_list]
+        peak = []
+        i = 0
+        while i < len(shrink_list):
+            if shrink_list[i] == 0:
+                i = i + 1
+                continue
+            start = i
+            end = i
+            break_count = 0
+            while break_count < 50 and i < len(shrink_list):
+                if shrink_list[i] == 0:
+                    break_count = break_count + 1
+                else:
+                    end = i
+                    break_count = 0
+                i = i + 1
+            if end - start < 5:
+                continue
+            peak.append(int((start + end) / 2))
+        print(len(peak))
+        return peak
+
+    def __get_draw_img(self, contours_x, color=(0, 0, 0)):
+        cloned_raw_img = self.raw_img.copy()
+        h, w, _ = cloned_raw_img.shape
+        contours = []
+        for line_num in range(len(contours_x)):
+            line = []
+            for i in range(h):
+                line.append([[int(contours_x[line_num]), i]])
+            contours.append(np.array(line))
+        cv2.drawContours(cloned_raw_img, contours, -1, color, 2)
+        return cloned_raw_img
 
     def __get_binary_img(self):
         _, binary_img = cv2.threshold(self.gray_scaled_img, 150, 255, cv2.THRESH_BINARY)
@@ -82,4 +132,4 @@ class TextileDetector:
 
 
 if __name__ == '__main__':
-    TextileDetector("4.jpg").test_draw()
+    TextileDetector("4.jpg").project_x()
