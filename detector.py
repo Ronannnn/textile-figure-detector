@@ -19,6 +19,10 @@ class TextileDetector:
         self.__show_and_save(binary_img, "binary-y")
         new_img = np.full(binary_img.shape, fill_value=255, dtype=np.uint8)  # create a new img with white dots
         black_dot_sum = np.sum(binary_img == 0, axis=1)  # sum all black dots
+        peak_y = self.__get_peak_2(black_dot_sum)
+        print(peak_y)
+        draw_img = self.__get_draw_img(peak_y, axis='y')
+        self.__show_and_save(draw_img, "draw-img-y")
         for i in range(len(black_dot_sum)):
             for j in range(0, black_dot_sum[i]):
                 new_img[i, j] = 0  # plot black dot
@@ -32,8 +36,8 @@ class TextileDetector:
         black_dot_sum = np.sum(binary_img == 0, axis=0)
         peak_x = self.__get_peak_2(black_dot_sum)
         print(peak_x)
-        draw_img = self.__get_draw_img(peak_x)
-        self.__show_and_save(draw_img, "draw-img")
+        draw_img = self.__get_draw_img(peak_x, axis='x')
+        self.__show_and_save(draw_img, "draw-img-x")
         h, _ = binary_img.shape
         for j in range(len(black_dot_sum)):
             for i in range(h - black_dot_sum[j], h):
@@ -91,20 +95,34 @@ class TextileDetector:
         print(len(peak))
         return peak
 
-    def __get_draw_img(self, contours_x, color=(0, 0, 0)):
+    def __get_draw_img(self, one_direction_list, axis, color=(0, 0, 0)):
         cloned_raw_img = self.raw_img.copy()
-        h, w, _ = cloned_raw_img.shape
-        contours = []
-        for line_num in range(len(contours_x)):
-            line = []
-            for i in range(h):
-                line.append([[int(contours_x[line_num]), i]])
-            contours.append(np.array(line))
+        contours = self.__get_contours(one_direction_list, axis=axis, shape=cloned_raw_img.shape)
         cv2.drawContours(cloned_raw_img, contours, -1, color, 2)
         return cloned_raw_img
 
+    @staticmethod
+    def __get_contours(one_direction_list, axis, shape):
+        h, w, _ = shape
+        contours = []
+        if axis == 'x':
+            for i in range(len(one_direction_list)):
+                line = []
+                for h_idx in range(h):
+                    line.append([[int(one_direction_list[i]), h_idx]])
+                contours.append(np.array(line))
+        elif axis == 'y':
+            for i in range(len(one_direction_list)):
+                line = []
+                for w_idx in range(w):
+                    line.append([[w_idx, int(one_direction_list[i])]])
+                contours.append(np.array(line))
+        else:
+            raise Exception("axis not supported")
+        return contours
+
     def __get_binary_img(self):
-        _, binary_img = cv2.threshold(self.gray_scaled_img, 150, 255, cv2.THRESH_BINARY)
+        _, binary_img = cv2.threshold(self.gray_scaled_img, 140, 255, cv2.THRESH_BINARY)
         binary_img = self.__adjust_black(binary_img)
         return binary_img
 
@@ -132,4 +150,4 @@ class TextileDetector:
 
 
 if __name__ == '__main__':
-    TextileDetector("4.jpg").project_x()
+    TextileDetector("4.jpg").project_y()
