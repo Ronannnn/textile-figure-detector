@@ -70,12 +70,20 @@ class TextileDetector:
         self.__show_and_save(i_img, "filter_high_pass")
         return i_img
 
-    def draw_edges_with_canny(self, color=(255, 0, 0)):
-        edges = cv.Canny(self.gray_scaled_img, 20, 80)
+    def draw_edges_with_canny(self, thresh1, thresh2, color=(255, 0, 0)):
+        edges = cv.Canny(self.gray_scaled_img, thresh1, thresh2)
         contours, _ = cv.findContours(edges, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
         new_img = self.raw_img.copy()
         cv.drawContours(new_img, contours, -1, color, 3)
         self.__show_and_save(new_img, "edges_with_canny")
+        return contours
+
+    def draw_edges_with_structure(self, thresh):
+        _, img = cv.threshold(self.gray_scaled_img, thresh, 255, cv.THRESH_BINARY)  # 设定红色通道阈值210（阈值影响梯度运算效果）
+        self.__show_and_save(img, "edges_with_structure_test")
+        kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))  # 定义矩形结构元素
+        gradient = cv.morphologyEx(img, cv.MORPH_GRADIENT, kernel)  # 梯度
+        self.__show_and_save(gradient, "edges_with_structure")
 
     @staticmethod
     def __get_peak(shadow_list):
@@ -141,6 +149,6 @@ class TextileDetector:
 
 
 if __name__ == '__main__':
-    td = TextileDetector("img/stripe/5.png")
-    # td.filter_high_pass(300)
-    td.draw_edges_with_canny()
+    # TextileDetector("img/5.jpg").filter_high_pass(400)
+    # TextileDetector("img/6.jpg").draw_edges_with_structure(80)
+    TextileDetector("img/stripe/5.png").draw_edges_with_canny(20, 200)
