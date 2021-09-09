@@ -20,6 +20,7 @@ class StripeDetector:
     def draw_edges_with_canny(self, thresh1, thresh2, color=(255, 0, 0)):
         edges = cv.Canny(self.gray_scaled_img, thresh1, thresh2)
         contours, _ = cv.findContours(edges, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
+        contours = self.__remove_invalid_edges(contours, 500)
         new_img = self.background.copy()
         cv.drawContours(new_img, contours, -1, color, 2)
         self.__show_and_save(new_img, "edges_with_canny")
@@ -34,6 +35,14 @@ class StripeDetector:
         cv.drawContours(new_img, contours, -1, color, 2)
         self.__show_and_save(new_img, "edges_with_structure")
         return contours
+
+    @staticmethod
+    def __remove_invalid_edges(contours, invalid_thresh):
+        ret = []
+        for line in contours:
+            if (len(line) > invalid_thresh):
+                ret.append(line)
+        return ret
 
     @staticmethod
     def replenish_contours(contours):
@@ -73,7 +82,7 @@ class StripeDetector:
 
 if __name__ == '__main__':
     sd = StripeDetector("img/stripe/5.png")
-    incomplete_contours = sd.draw_edges_with_canny(20, 200)
+    incomplete_contours = sd.draw_edges_with_canny(20, 80)
     # incomplete_contours = sd.draw_edges_with_structure(20)
     # complete_contours = sd.replenish_contours(incomplete_contours)
     # sd.remove_shadow_by_max_filtering()
