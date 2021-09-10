@@ -37,8 +37,8 @@ class StripeDetector:
         points = []
         while cur_h < h:
             shadow_list = cv.reduce(cloned_edges[cur_h - interval: cur_h, :], 0, cv.REDUCE_SUM, dtype=cv.CV_32S)[0]
-            peak = self.__get_peak(shadow_list)
-            peak = [peak[i] for i in range(len(peak)) if i % 2 == 0]
+            peak = self.__get_peak_2(shadow_list)
+            # peak = [peak[i] for i in range(len(peak)) if i % 2 == 0]
             for x in peak:
                 points.append([x, cur_h])
             cur_h = cur_h + interval
@@ -51,10 +51,33 @@ class StripeDetector:
         self.__show_and_save(new_img, "canny_with_circles")
 
     @staticmethod
-    def __get_peak(shadow_list):
+    def __get_peak_1(shadow_list):
         shadow_list = np.array(shadow_list)
         threshold = int(np.max(shadow_list) * 0.25)
         return [i for i in range(len(shadow_list)) if shadow_list[i] > threshold]
+    
+    @staticmethod
+    def __get_peak_2(shadow_list):
+        """
+        Reference: https://www.cnblogs.com/ronny/p/3616470.html
+        """
+        # first order difference vector
+        vec = shadow_list[1:] - shadow_list[:-1]
+        vec = np.sign(vec)
+        if vec[len(vec) - 1] == 0:
+            vec[len(vec) - 1] = 1
+        for i in range(len(vec) - 2, 0, -1):
+            if vec[i] == 0:
+                if vec[i + 1] >= 0:
+                    vec[i] = 1
+                else:
+                    vec[i] = -1
+        vec = vec[1:] - vec[:-1]
+        peak = []
+        for i in range(len(vec) - 1):
+            if vec[i + 1] - vec[i] == -2:  # peak
+                peak.append(i + 1)
+        return peak
 
     def draw_edges_with_structure(self, thresh, color=(255, 0, 0)):
         _, img = cv.threshold(self.gray_scaled_img, thresh, 255, cv.THRESH_BINARY)  # 设定红色通道阈值210（阈值影响梯度运算效果）
