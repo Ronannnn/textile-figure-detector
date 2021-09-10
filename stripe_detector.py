@@ -30,17 +30,15 @@ class StripeDetector:
 
     # TODO: suppose stripes are vertical
     def find_coordinate(self, edges, interval):
-        h, w = edges.shape
+        h, _ = edges.shape
         cur_h = interval
+        cloned_edges = np.array(edges)
+        cloned_edges[cloned_edges == 255] = 1  # for cv.reduce
         points = []
         while cur_h < h:
-            shadow = np.zeros(w)
-            for i in range(cur_h - interval, cur_h):
-                for j in range(w):
-                    if edges[i][j] == 255:
-                        shadow[j] = shadow[j] + 1
-            peak = self.__get_peak(shadow)
-            # print(peak)
+            shadow_list = cv.reduce(cloned_edges[cur_h - interval: cur_h, :], 0, cv.REDUCE_SUM, dtype=cv.CV_32S)[0]
+            peak = self.__get_peak(shadow_list)
+            peak = [peak[i] for i in range(len(peak)) if i % 2 == 0]
             for x in peak:
                 points.append([x, cur_h])
             cur_h = cur_h + interval
@@ -49,7 +47,7 @@ class StripeDetector:
     def draw_circles(self, points):
         new_img = self.raw_img.copy()
         for point in points:
-            new_img = cv.circle(new_img, (point[0], point[1]), radius=0, color=(0, 0, 255), thickness=5)
+            new_img = cv.circle(new_img, (point[0], point[1]), radius=0, color=(0, 0, 255), thickness=-1)
         self.__show_and_save(new_img, "canny_with_circles")
 
     @staticmethod
