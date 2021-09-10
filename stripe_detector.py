@@ -3,6 +3,8 @@ import numpy as np
 from pathlib import Path
 import os
 
+from scipy.signal import find_peaks
+
 
 class StripeDetector:
     def __init__(self, filename):
@@ -77,6 +79,11 @@ class StripeDetector:
         for i in range(len(vec) - 1):
             if vec[i + 1] - vec[i] == -2:  # peak
                 peak.append(i + 1)
+        return peak
+
+    @staticmethod
+    def __get_peak_3(shadow_list):
+        peak, _ = find_peaks(shadow_list, height=0.95)
         return peak
 
     def draw_edges_with_structure(self, thresh, color=(255, 0, 0)):
