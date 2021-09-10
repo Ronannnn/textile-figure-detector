@@ -17,6 +17,8 @@ class StripeDetector:
         self.gray_scaled_img = cv.cvtColor(self.contrast_enhanced_img, cv.COLOR_RGB2GRAY)
         self.background = self.shadow_weaken_img
 
+        self.thickness = 1
+
     def draw_edges_with_canny(self, thresh1, thresh2, color=(255, 0, 0)):
         edges = cv.Canny(self.gray_scaled_img, thresh1, thresh2)
         contours, _ = cv.findContours(edges, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
@@ -24,7 +26,37 @@ class StripeDetector:
         new_img = self.background.copy()
         cv.drawContours(new_img, contours, -1, color, 2)
         self.__show_and_save(new_img, "edges_with_canny")
-        return contours
+        return edges
+
+    # TODO: suppose stripes are vertical
+    def find_coordinate(self, edges, interval):
+        h, w = edges.shape
+        cur_h = interval
+        points = []
+        while cur_h < h:
+            shadow = np.zeros(w)
+            for i in range(cur_h - interval, cur_h):
+                for j in range(w):
+                    if edges[i][j] == 255:
+                        shadow[j] = shadow[j] + 1
+            peak = self.__get_peak(shadow)
+            # print(peak)
+            for x in peak:
+                points.append([x, cur_h])
+            cur_h = cur_h + interval
+        return points
+
+    def draw_circles(self, points):
+        new_img = self.raw_img.copy()
+        for point in points:
+            new_img = cv.circle(new_img, (point[0], point[1]), radius=0, color=(0, 0, 255), thickness=5)
+        self.__show_and_save(new_img, "canny_with_circles")
+
+    @staticmethod
+    def __get_peak(shadow_list):
+        shadow_list = np.array(shadow_list)
+        threshold = int(np.max(shadow_list) * 0.25)
+        return [i for i in range(len(shadow_list)) if shadow_list[i] > threshold]
 
     def draw_edges_with_structure(self, thresh, color=(255, 0, 0)):
         _, img = cv.threshold(self.gray_scaled_img, thresh, 255, cv.THRESH_BINARY)  # 设定红色通道阈值210（阈值影响梯度运算效果）
@@ -32,7 +64,7 @@ class StripeDetector:
         dilated = cv.dilate(img, kernel)
         contours, _ = cv.findContours(dilated.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         new_img = self.background.copy()
-        cv.drawContours(new_img, contours, -1, color, 2)
+        cv.drawContours(new_img, contours, -1, color, self.thickness)
         self.__show_and_save(new_img, "edges_with_structure")
         return contours
 
@@ -81,8 +113,10 @@ class StripeDetector:
 
 
 if __name__ == '__main__':
-    sd = StripeDetector("img/stripe/5.png")
-    incomplete_contours = sd.draw_edges_with_canny(20, 80)
+    sd = StripeDetector("img/stripe/2.png")
+    edges = sd.draw_edges_with_canny(90, 100)
+    points = sd.find_coordinate(edges, 100)
+    sd.draw_circles(points)
     # incomplete_contours = sd.draw_edges_with_structure(20)
     # complete_contours = sd.replenish_contours(incomplete_contours)
     # sd.remove_shadow_by_max_filtering()
