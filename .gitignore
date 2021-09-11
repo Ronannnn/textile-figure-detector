@@ -2,3 +2,4 @@ __pycache__/
 .idea
 img/*
 .devcontainer
+remove-built-imgs.sh
