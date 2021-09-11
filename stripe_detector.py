@@ -8,6 +8,7 @@ class StripeDetector:
     def __init__(
         self,
         filename,
+        is_vertical,
         canny_thresh1=50,
         canny_thresh2=200,
         interval=25,
@@ -33,6 +34,7 @@ class StripeDetector:
         self.gray_scaled_img = cv.cvtColor(self.contrast_enhanced_img, cv.COLOR_RGB2GRAY)
 
         # input parameters
+        self.is_vertical = is_vertical
         self.canny_thresh1 = canny_thresh1
         self.canny_thresh2 = canny_thresh2
         self.interval = interval
@@ -50,6 +52,7 @@ class StripeDetector:
                 if "[" not in filename and "]" not in filename:  # since
                     StripeDetector(
                         filename=os.path.join(target_dir, filename),
+                        is_vertical=True,
                         canny_thresh1=50,
                         canny_thresh2=200,
                         interval=25,
@@ -58,7 +61,7 @@ class StripeDetector:
 
     def draw_circles_with_canny(self):
         edges = self.__get_edges_with_canny(self.canny_thresh1, self.canny_thresh2)
-        points = self.__find_coordinates(edges, self.interval, self.merge_thresh)
+        points = self.__find_coordinates(edges, self.is_vertical, self.interval, self.merge_thresh)
         self.__draw_circles(points)
 
     def __get_edges_with_canny(self, thresh1, thresh2, color=(255, 0, 0)):
@@ -70,31 +73,38 @@ class StripeDetector:
         return edges
 
     # TODO: suppose stripes are vertical
-    def __find_coordinates(self, edges, interval, merge_thresh):
+    def __find_coordinates(self, edges, is_vertical, interval, merge_thresh):
         """
         For each interval, project black points and find the local peak for each edge
 
         @param interval: if stripes are vertical, the interval means the distance of horizontal lines
         @param merge_thresh: see __merge_peak for more details 
         """
+        if is_vertical is not True:
+            edges = np.transpose(edges)
         h, _ = edges.shape
         cur_h = interval
         cloned_edges = np.array(edges)
         cloned_edges[cloned_edges == 255] = 1  # for cv.reduce
-        points = []
+        points = np.zeros(edges.shape)
         while cur_h < h:
             projection_list = cv.reduce(cloned_edges[cur_h - interval: cur_h, :], 0, cv.REDUCE_SUM, dtype=cv.CV_32S)[0]
             peak = self.__get_peak(projection_list)
             peak = self.__merge_peak(peak, merge_thresh)
             for x in peak:
-                points.append([x, cur_h])
+                points[cur_h][x] = 1
             cur_h = cur_h + interval
+        if is_vertical is not True:
+            points = np.transpose(points)
         return points
 
     def __draw_circles(self, points, color=(0, 0, 255)):
         new_img = self.raw_img.copy()
-        for point in points:
-            new_img = cv.circle(new_img, (point[0], point[1]), radius=0, color=color, thickness=self.circle_thickness)
+        for i in range(len(points)):
+            for j in range(len(points[i])):
+                if points[i][j] == 1:
+                    # NOTE: coordinate in cv img is different from that in array
+                    new_img = cv.circle(new_img, (j, i), radius=0, color=color, thickness=self.circle_thickness)
         self.__show_and_save(new_img, "with-circles")
 
     @staticmethod
@@ -156,4 +166,4 @@ class StripeDetector:
 
 if __name__ == '__main__':
     StripeDetector.detect_dir("img/stripe/raw")
-    StripeDetector("img/stripe/raw/a6.png", merge_thresh=1).draw_circles_with_canny()
+    StripeDetector("img/stripe/raw/a11.png", is_vertical=False, merge_thresh=5).draw_circles_with_canny()
