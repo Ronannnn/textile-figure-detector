@@ -39,7 +39,8 @@ class StripeDetector:
         points = []
         while cur_h < h:
             shadow_list = cv.reduce(cloned_edges[cur_h - interval: cur_h, :], 0, cv.REDUCE_SUM, dtype=cv.CV_32S)[0]
-            peak = self.__get_peak_2(shadow_list)
+            peak = self.__get_peak_1(shadow_list)
+            peak = self.__merge_peak(peak)
             # peak = [peak[i] for i in range(len(peak)) if i % 2 == 0]
             for x in peak:
                 points.append([x, cur_h])
@@ -57,7 +58,7 @@ class StripeDetector:
         shadow_list = np.array(shadow_list)
         threshold = int(np.max(shadow_list) * 0.25)
         return [i for i in range(len(shadow_list)) if shadow_list[i] > threshold]
-    
+
     @staticmethod
     def __get_peak_2(shadow_list):
         """
@@ -85,6 +86,23 @@ class StripeDetector:
     def __get_peak_3(shadow_list):
         peak, _ = find_peaks(shadow_list, height=0.95)
         return peak
+
+    def __merge_peak(self, peak, thresh=5):
+        """
+        If the difference of abscissas of two points is smaller than 5, 
+        substitute these two points as their center
+        @param peak: one direction array, which store abscissas of points
+        """
+        prev = peak[0]
+        ret = []
+        for i in range(1, len(peak)):
+            cur = peak[i]
+            if cur - prev > thresh:
+                ret.append(prev)
+                prev = cur
+            else:
+                prev = int((cur + prev) / 2)
+        return ret
 
     def draw_edges_with_structure(self, thresh, color=(255, 0, 0)):
         _, img = cv.threshold(self.gray_scaled_img, thresh, 255, cv.THRESH_BINARY)  # 设定红色通道阈值210（阈值影响梯度运算效果）
@@ -142,8 +160,8 @@ class StripeDetector:
 
 if __name__ == '__main__':
     sd = StripeDetector("img/stripe/2.png")
-    edges = sd.draw_edges_with_canny(90, 100)
-    points = sd.find_coordinate(edges, 100)
+    edges = sd.draw_edges_with_canny(thresh1=90, thresh2=100)
+    points = sd.find_coordinate(edges, interval=25)
     sd.draw_circles(points)
     # incomplete_contours = sd.draw_edges_with_structure(20)
     # complete_contours = sd.replenish_contours(incomplete_contours)
