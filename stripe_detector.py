@@ -13,6 +13,13 @@ class StripeDetector:
         interval=25,
         merge_thresh=5
     ):
+        """
+        @param filename: filename can contain parent directory
+        @param canny_thresh1: see cv.canny for more details
+        @param canny_thresh2: see cv.canny for more details
+        @param interval: see __find_coordinates fore more details
+        @param merge_thresh: see __merge_peak for more details
+        """
         # filename info
         filepath = Path(filename)
         self.parent_dir = filepath.parent.absolute()
@@ -37,6 +44,7 @@ class StripeDetector:
 
     @staticmethod
     def detect_dir(target_dir):
+        # iterate all files except files with "[" or "]"
         for _, _, file_list in os.walk(target_dir):
             for filename in file_list:
                 if "[" not in filename and "]" not in filename:  # since
@@ -63,14 +71,20 @@ class StripeDetector:
 
     # TODO: suppose stripes are vertical
     def __find_coordinates(self, edges, interval, merge_thresh):
+        """
+        For each interval, project black points and find the local peak for each edge
+
+        @param interval: if stripes are vertical, the interval means the distance of horizontal lines
+        @param merge_thresh: see __merge_peak for more details 
+        """
         h, _ = edges.shape
         cur_h = interval
         cloned_edges = np.array(edges)
         cloned_edges[cloned_edges == 255] = 1  # for cv.reduce
         points = []
         while cur_h < h:
-            shadow_list = cv.reduce(cloned_edges[cur_h - interval: cur_h, :], 0, cv.REDUCE_SUM, dtype=cv.CV_32S)[0]
-            peak = self.__get_peak(shadow_list)
+            projection_list = cv.reduce(cloned_edges[cur_h - interval: cur_h, :], 0, cv.REDUCE_SUM, dtype=cv.CV_32S)[0]
+            peak = self.__get_peak(projection_list)
             peak = self.__merge_peak(peak, merge_thresh)
             for x in peak:
                 points.append([x, cur_h])
@@ -84,20 +98,21 @@ class StripeDetector:
         self.__show_and_save(new_img, "with-circles")
 
     @staticmethod
-    def __get_peak(shadow_list):
+    def __get_peak(projection_list):
         """
-        @param shadow_list: one direction list
+        @param projection_list: one direction list
         """
-        shadow_list = np.array(shadow_list)
-        threshold = int(np.max(shadow_list) * 0.25)
-        return [i for i in range(len(shadow_list)) if shadow_list[i] > threshold]
+        projection_list = np.array(projection_list)
+        threshold = int(np.max(projection_list) * 0.25)
+        return [i for i in range(len(projection_list)) if projection_list[i] > threshold]
 
     @staticmethod
     def __merge_peak(peak, merge_thresh):
         """
         If the difference of abscissas of two points is smaller than threshold, 
-            substitute these two points as their center
-        @param peak: one direction array, which store abscissas of points
+            substitute these two points with their center
+        @param peak: one direction array, which store abscissas of peaks
+        @param merge_thresh: each edge may have multiple projection peaks, this func will merge peaks within a certain range
         """
         if len(peak) == 0:
             return peak
