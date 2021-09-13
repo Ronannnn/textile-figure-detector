@@ -3,6 +3,8 @@ import numpy as np
 from pathlib import Path
 import os
 
+from canny import canny_detector
+
 
 class StripeDetector:
     def __init__(
@@ -65,7 +67,8 @@ class StripeDetector:
         self.__draw_circles(points)
 
     def __get_edges_with_canny(self, thresh1, thresh2, color=(255, 0, 0)):
-        edges = cv.Canny(self.gray_scaled_img, thresh1, thresh2)
+        # edges = cv.Canny(self.gray_scaled_img, thresh1, thresh2)
+        edges = canny_detector(self.gray_scaled_img, thresh1, thresh2)
         contours, _ = cv.findContours(edges, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
         new_img = self.raw_img.copy()
         cv.drawContours(new_img, contours, -1, color, self.edge_thickness)
@@ -165,5 +168,5 @@ class StripeDetector:
 
 
 if __name__ == '__main__':
-    StripeDetector.detect_dir("img/stripe/raw")
+    # StripeDetector.detect_dir("img/stripe/raw")
     StripeDetector("img/stripe/raw/a11.png", is_vertical=False, merge_thresh=5).draw_circles_with_canny()
