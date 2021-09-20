@@ -8,7 +8,7 @@ class TextileDetector:
     def __init__(self, filename):
         filepath = Path(filename)
         self.parent_dir = filepath.parent.absolute()
-        self.fn_stem = filepath.stem      # filename without parent dir and suffix
+        self.fn_stem = filepath.stem  # filename without parent dir and suffix
         self.fn_suffix = filepath.suffix  # suffix with dot, e.g. ".jpg"
 
         self.raw_img = cv.imread(filename)
@@ -53,14 +53,11 @@ class TextileDetector:
 
         # set high pass filter
         h, w = self.gray_scaled_img.shape
-        center_x, center_y = int(h/2), int(w/2)
+        center_x, center_y = int(h / 2), int(w / 2)
         filter_w = int(filter_h * w / h)
         h_half = int(filter_h / 2)
         w_half = int(filter_w / 2)
-        f_shift[
-            center_x-h_half:center_x+h_half,
-            center_y-w_half:center_y+w_half
-        ] = 0
+        f_shift[center_x - h_half:center_x + h_half, center_y - w_half:center_y + w_half] = 0
 
         # inverse fourier transform
         i_shift = np.fft.ifftshift(f_shift)

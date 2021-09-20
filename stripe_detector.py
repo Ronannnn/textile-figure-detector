@@ -169,4 +169,4 @@ class StripeDetector:
 
 if __name__ == '__main__':
     # StripeDetector.detect_dir("img/stripe/raw")
-    StripeDetector("img/stripe/raw/a11.png", is_vertical=False, merge_thresh=5).draw_circles_with_canny()
+    StripeDetector("img/stripe/3.png", is_vertical=False, merge_thresh=5).draw_circles_with_canny()
