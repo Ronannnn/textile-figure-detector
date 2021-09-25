@@ -7,6 +7,7 @@ from pathlib import Path
 from keras.layers import AveragePooling2D
 from skimage.color import rgb2hsv
 import skimage.color
+from skimage.util import img_as_ubyte
 
 
 class ATM:
@@ -25,7 +26,7 @@ class ATM:
         # self.hsv_img = rgb2hsv(self.raw_img)
         self.hsv_img = skimage.color.convert_colorspace(self.raw_img, 'RGB', 'HSV')
         self.h_img = self.hsv_img[:, :, 0]
-        self.h_img = (self.h_img * 255).astype(np.uint8)  # convert to uint8 before canny
+        self.h_img = img_as_ubyte(self.h_img)  # convert to uint8 before canny
         self.gray_scaled_img = cv.cvtColor(self.raw_img, cv.COLOR_RGB2GRAY)
         # according to the essay
         # n and m are the height and width of the original input image
