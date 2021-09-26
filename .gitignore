@@ -3,3 +3,4 @@ __pycache__/
 img/*
 .devcontainer
 remove-built-imgs.sh
+.DS_Store
