@@ -141,7 +141,7 @@ class StripeDetector:
         return ret
 
     @staticmethod
-    def __weaken_shadow(img):
+    def weaken_shadow(img):
         """
         Ref: https://www.codenong.com/44752240/
         """
