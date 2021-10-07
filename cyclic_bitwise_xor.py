@@ -30,32 +30,26 @@ class CyclicBitwiseXor:
         self.circle_thickness = 2
 
     def calculate(self):
-        # key: xor sum, value: idx
-        xor_dict = {}
-        cloned_img = self.gray_scaled_img.copy()
-        # for line chart
-        line_x = []
-        line_y = []
-        for idx in range(self.w - 1):
-            # left shift by one pixel each time
-            cloned_img = np.roll(cloned_img, -1, axis=1)
-            # xor and count
-            key = (cloned_img != self.gray_scaled_img).sum()
-            if key not in xor_dict:
-                xor_dict[key] = []
-            xor_dict[key].append(idx)
-            line_x.append(idx)
-            line_y.append(key)
-        dict_keys = np.array(list(xor_dict.keys()))
-        min_avg = np.min(dict_keys)
-        min_keys = dict_keys[dict_keys <= min_avg * 1.0004]
+        avg_xor_dict = self.__xor_img(self.gray_scaled_img, self.w, 1)
+        key_with_min_avg = min(avg_xor_dict.keys(), key=(lambda k: avg_xor_dict[k]))
+        min_avg = avg_xor_dict[key_with_min_avg]
+        points_y = [idx for idx, avg in avg_xor_dict.items() if avg <= min_avg * 1.7]
         circle_points = []
-        for key in min_keys:
-            for w_idx in xor_dict[key]:
-                circle_points.append([int(self.h / 2), w_idx])
+        for y in points_y:
+            circle_points.append([int(self.h / 2), y])
         self.__draw_circles(circle_points)
-        plt.plot(line_x, line_y)
+        plt.plot(list(avg_xor_dict.keys()), list(avg_xor_dict.values()))
         plt.show()
+
+    @staticmethod
+    def __xor_img(raw_img, border, axis):
+        img = raw_img.copy()
+        avg_xor_dict = {}
+        for i in range(1, border):
+            rolled_img = np.roll(img, i, axis=axis)
+            xor = cv.bitwise_xor(rolled_img, raw_img)
+            avg_xor_dict[i] = np.average(xor)
+        return avg_xor_dict
 
     def __draw_circles(self, points, color=(0, 0, 255)):
         new_img = self.raw_img.copy()
