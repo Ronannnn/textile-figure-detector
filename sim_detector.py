@@ -1,7 +1,9 @@
 import os
+import sys
 from pathlib import Path
 import cv2 as cv
 import numpy as np
+from sklearn.cluster import AgglomerativeClustering
 
 
 class SimDetector:
@@ -21,17 +23,32 @@ class SimDetector:
         self.gray_scaled_img = cv.cvtColor(self.raw_img, cv.COLOR_RGB2GRAY)
         self.template = self.gray_scaled_img[l_x: r_x, l_y: r_y]
 
-        # img preprocess
-        self.raw_img = cv.imread(filename)
-
         self.circle_thickness = 1
 
+    # Ref: https://www.geeksforgeeks.org/template-matching-using-opencv-in-python/
+    # zip[*loc::-1] explanation: https://stackoverflow.com/questions/56449024/explanation-of-a-few-lines-template-matching-in-python-using-opencv
     def ncc_with_cv(self):
-        res = cv.matchTemplate(self.gray_scaled_img, self.template, cv.TM_CCORR_NORMED)
-        threshold = 0.999
-        loc = np.where(res >= threshold)
-        for pt in zip(*loc[::-1]):
-            cv.rectangle(self.raw_img, pt, (pt[0] + self.pt_w, pt[1] + self.pt_h), (0, 255, 255), 1)
+        ncc = cv.matchTemplate(self.gray_scaled_img, self.template, cv.TM_CCORR_NORMED)
+        threshold = 0.9988
+        loc = np.where(ncc >= threshold)
+        raw_pts = [list(a) for a in zip(*loc)]
+        labels = AgglomerativeClustering(n_clusters=None, distance_threshold=10).fit_predict(raw_pts)
+        cluster_dict = {}
+        for idx, label in enumerate(labels):
+            if label not in cluster_dict:
+                cluster_dict[label] = []
+            cluster_dict[label].append(idx)
+        pts = []
+        for _, cluster in cluster_dict.items():
+            min_ncc = sys.maxsize
+            x, y = -1, -1
+            for idx in cluster:
+                x, y = raw_pts[idx][0], raw_pts[idx][1]
+                if min_ncc > ncc[x][y]:
+                    min_nnc = ncc[x][y]
+            pts.append([y, x])  # x y are reverse in img
+        for pt in pts:
+            cv.rectangle(self.raw_img, pt, (pt[0] + self.pt_h, pt[1] + self.pt_w), (0, 255, 255), 1)
         self.__show_and_save(self.raw_img, "test")
 
     def ncc_with_customized_fn(self):
@@ -67,8 +84,6 @@ class SimDetector:
     def __show_and_save(self, img, label, show=True, save=True):
         cv.imshow(label, img) if show else None
         cv.imwrite(os.path.join(self.parent_dir, self.fn_stem + "[" + label + "]" + self.fn_suffix), img) if save else None
-
-    # todo 基于描述符
 
 
 if __name__ == '__main__':
