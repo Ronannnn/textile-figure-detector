@@ -31,7 +31,7 @@ class StripeDetector:
 
         # img preprocess
         self.raw_img = cv.imread(filename)
-        self.shadow_weaken_img = self.__weaken_shadow(self.raw_img)
+        self.shadow_weaken_img = self.weaken_shadow(self.raw_img)
         self.contrast_enhanced_img = self.__enhance_contrast(self.shadow_weaken_img)
         self.gray_scaled_img = cv.cvtColor(self.contrast_enhanced_img, cv.COLOR_RGB2GRAY)
 
