@@ -1,20 +1,19 @@
 import cv2 as cv
 import numpy as np
-from pathlib import Path
 import os
 
-from canny import canny_detector
+from img_handle import ImgHandle
 
 
 class StripeDetector:
     def __init__(
-        self,
-        filename,
-        is_vertical,
-        canny_thresh1=50,
-        canny_thresh2=200,
-        interval=25,
-        merge_thresh=5
+            self,
+            filename,
+            is_vertical,
+            canny_thresh1=50,
+            canny_thresh2=200,
+            interval=25,
+            merge_thresh=5
     ):
         """
         @param filename: filename can contain parent directory
@@ -23,17 +22,11 @@ class StripeDetector:
         @param interval: see __find_coordinates fore more details
         @param merge_thresh: see __merge_peak for more details
         """
-        # filename info
-        filepath = Path(filename)
-        self.parent_dir = filepath.parent.absolute()
-        self.fn_stem = filepath.stem      # filename without parent dir and suffix
-        self.fn_suffix = filepath.suffix  # suffix with dot, e.g. ".jpg"
+        self.img_handle = ImgHandle(filename, filter_high_pass=False)
 
         # img preprocess
-        self.raw_img = cv.imread(filename)
-        self.shadow_weaken_img = self.weaken_shadow(self.raw_img)
-        self.contrast_enhanced_img = self.enhance_contrast(self.shadow_weaken_img)
-        self.gray_scaled_img = cv.cvtColor(self.contrast_enhanced_img, cv.COLOR_RGB2GRAY)
+        self.raw_img = self.img_handle.raw_img
+        self.gray_img = self.img_handle.img
 
         # input parameters
         self.is_vertical = is_vertical
@@ -67,12 +60,11 @@ class StripeDetector:
         self.__draw_circles(points)
 
     def __get_edges_with_canny(self, thresh1, thresh2, color=(255, 0, 0)):
-        # edges = cv.Canny(self.gray_scaled_img, thresh1, thresh2)
-        edges = canny_detector(self.gray_scaled_img, thresh1, thresh2)
+        edges = cv.Canny(self.gray_img, thresh1, thresh2)
         contours, _ = cv.findContours(edges, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
         new_img = self.raw_img.copy()
         cv.drawContours(new_img, contours, -1, color, self.edge_thickness)
-        self.__show_and_save(new_img, "with-edges", save=False)
+        self.img_handle.save(new_img, "with-edges")
         return edges
 
     # TODO: suppose stripes are vertical
@@ -108,7 +100,7 @@ class StripeDetector:
                 if points[i][j] == 1:
                     # NOTE: coordinate in cv img is different from that in array
                     new_img = cv.circle(new_img, (j, i), radius=0, color=color, thickness=self.circle_thickness)
-        self.__show_and_save(new_img, "with-circles")
+        self.img_handle.save(new_img, "with-circles")
 
     @staticmethod
     def __get_peak(projection_list):
@@ -140,27 +132,7 @@ class StripeDetector:
                 prev = int((cur + prev) / 2)
         return ret
 
-    @staticmethod
-    def weaken_shadow(img):
-        """
-        Ref: https://www.codenong.com/44752240/
-        """
-        rgb_planes = cv.split(img)
-        result_norm_planes = []
-        for plane in rgb_planes:
-            dilated_img = cv.dilate(plane, np.ones((7, 7), np.uint8))
-            bg_img = cv.medianBlur(dilated_img, 21)
-            diff_img = 255 - cv.absdiff(plane, bg_img)
-            norm_img = cv.normalize(diff_img, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_8UC1)
-            result_norm_planes.append(norm_img)
-        result_norm = cv.merge(result_norm_planes)
-        return result_norm
-
-    def __show_and_save(self, img, label, show=False, save=True):
-        cv.imshow(label, img) if show else None
-        cv.imwrite(os.path.join(self.parent_dir, self.fn_stem + "[" + label + "]" + self.fn_suffix), img) if save else None
-
 
 if __name__ == '__main__':
     # StripeDetector.detect_dir("img/stripe/raw")
-    StripeDetector("img/stripe/3.png", is_vertical=False, merge_thresh=5).draw_circles_with_canny()
+    StripeDetector("../img/stripe/3.png", is_vertical=False, merge_thresh=5).draw_circles_with_canny()

@@ -1,13 +1,10 @@
-import os
 import sys
-from pathlib import Path
 import cv2 as cv
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
 from skimage.feature import local_binary_pattern
 
-from stripe_detector import StripeDetector
-from img_util import ImgUtil
+from img_handle import ImgHandle
 
 
 class SimDetector:
@@ -19,10 +16,9 @@ class SimDetector:
         self.c_h = c_x - l_x
         self.c_w = c_y - l_y
 
-        self.raw_img = cv.imread(filename)
-        self.contrast_enhanced_img = ImgUtil.enhance_contrast(self.raw_img)
-        self.gray_img = cv.cvtColor(self.contrast_enhanced_img, cv.COLOR_RGB2GRAY)
-        self.gray_img = ImgUtil.filter_high_pass(self.gray_img, 2)
+        self.img_handle = ImgHandle(filename)
+        self.raw_img = self.img_handle.raw_img
+        self.gray_img = self.img_handle.img
         self.template = self.gray_img[l_x: r_x, l_y: r_y]
 
         self.circle_thickness = 1
@@ -51,7 +47,7 @@ class SimDetector:
         for pt in pts:
             cv.rectangle(img_rec, (pt[1], pt[0]), (pt[1] + self.pt_w, pt[0] + self.pt_h), (0, 255, 255), self.circle_thickness)
             # img_pt = cv.circle(img_pt, (pt[1] + self.c_w, pt[0] + self.c_h), radius=0, color=(0, 255, 255), thickness=3)
-        ImgUtil.save(img_rec, self.filename, "rec")
+        self.img_handle.save(img_rec, "rec")
         # ImgUtil.save(img_pt, self.filename, "pt")
 
     @staticmethod
@@ -75,12 +71,12 @@ class SimDetector:
 
     def draw_edges(self, x, y, color=(0, 0, 255)):
         copied_img = self.raw_img.copy()
-        img_rec = ImgUtil.draw_rectangle(copied_img, x, y, self.pt_h, self.pt_w, color, self.circle_thickness)
-        ImgUtil.save(img_rec, self.filename, "template")
+        img_rec = ImgHandle.draw_rectangle(copied_img, x, y, self.pt_h, self.pt_w, color, self.circle_thickness)
+        self.img_handle.save(img_rec, "template")
 
 
 if __name__ == '__main__':
-    sd = SimDetector("img/lattice/p1.png", 45, 48, 90, 90, 67, 69)
+    sd = SimDetector("../img/lattice/p1.png", 45, 48, 90, 90, 67, 69)
     # sd.ncc_with_cv(0.9988, 10)
     sd.lbp(0.1, 20, p=40, r=1)
     # sd = SimDetector("img/lattice/p3.png", 130, 90, 360, 285, 245, 187)
