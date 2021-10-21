@@ -32,7 +32,7 @@ class StripeDetector:
         # img preprocess
         self.raw_img = cv.imread(filename)
         self.shadow_weaken_img = self.weaken_shadow(self.raw_img)
-        self.contrast_enhanced_img = self.__enhance_contrast(self.shadow_weaken_img)
+        self.contrast_enhanced_img = self.enhance_contrast(self.shadow_weaken_img)
         self.gray_scaled_img = cv.cvtColor(self.contrast_enhanced_img, cv.COLOR_RGB2GRAY)
 
         # input parameters
@@ -155,12 +155,6 @@ class StripeDetector:
             result_norm_planes.append(norm_img)
         result_norm = cv.merge(result_norm_planes)
         return result_norm
-
-    @staticmethod
-    def __enhance_contrast(img):
-        dst = np.zeros_like(img)
-        cv.normalize(img, dst, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
-        return dst
 
     def __show_and_save(self, img, label, show=False, save=True):
         cv.imshow(label, img) if show else None
