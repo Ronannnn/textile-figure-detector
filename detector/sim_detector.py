@@ -9,8 +9,6 @@ from img_handle import ImgHandle
 
 class SimDetector:
     def __init__(self, filename, l_x, l_y, r_x, r_y, c_x, c_y):
-        self.filename = filename
-
         self.pt_h = r_x - l_x
         self.pt_w = r_y - l_y
         self.c_h = c_x - l_x
